@@ -1,50 +1,12 @@
-let effectActive
-const targetMap = new WeakMap()
+import { effect, tigger, track } from "./effect.js"
+import { flushJob, jobQueue } from "./job.js"
 
-function effect(fn) {
-  effectActive = fn
-  effectActive.deps = []
-  console.log(effectActive.deps)
-  fn()
+const test = {
+  name: 'test',
+  age: 18
 }
 
-const obj = {
-  message: 'aaa',
-  tmp: '123'
-}
-
-function track(target, key) {
-  if (!effectActive) {
-    return
-  }
-
-  let depsMap = targetMap.get(target)
-  if (!depsMap) {
-    targetMap.set(target, depsMap = new Map())
-  }
-
-  let dep = depsMap.get(key)
-  if (!dep) {
-    depsMap.set(key, dep = new Set())
-  }
-
-  dep.add(effectActive)
-  effectActive.deps.push(dep)
-}
-
-function trigger(target, key) {
-  // TODO key内容相等时
-  const depsMap = targetMap.get(target)
-  if (!depsMap) {
-    return
-  }
-
-  const deps = depsMap.get(key)
-
-  deps.forEach(fn => fn())
-}
-
-const prox = new Proxy(obj, {
+const proxyTest = new Proxy(test, {
   get(target, key) {
     track(target, key)
 
@@ -52,14 +14,20 @@ const prox = new Proxy(obj, {
   },
   set(target, key, newValue) {
     target[key] = newValue
-
-    trigger(target, key)
+    tigger(target, key)
+    return true
   }
 })
 
 effect(() => {
-  console.log(prox.message === 'aaa' ? prox.tmp : false)
+  console.log(proxyTest.name)
+  proxyTest.age++
+}, {
+  schedule(fn) {
+    jobQueue.add(fn)
+    flushJob()
+  }
 })
 
-prox.message = 'bbb'
-prox.tmp = '456'
+proxyTest.name = 'bbb'
+proxyTest.name = 'ccc'
