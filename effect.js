@@ -3,20 +3,27 @@ import { targetMap } from "./dep.js"
 export let activeEffect
 const activeStack = []
 
-export function effect(fn, options) {
+export function effect(fn, options = {}) {
   const effectFn = () => {
     cleanUp(effectFn)
     activeEffect = effectFn
 
     activeStack.push(effectFn)
-    fn()
+    const res = fn()
     activeStack.pop()
     activeEffect = activeStack[activeStack.length - 1]
+
+    return res
   }
 
   effectFn.deps = []
   effectFn.options = options
-  effectFn()
+
+  if (!options.lazy) {
+    effectFn()
+  }
+  
+  return effectFn
 }
 
 export function track(target, key) {
