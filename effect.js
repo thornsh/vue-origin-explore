@@ -5,6 +5,7 @@ const activeStack = []
 
 export function effect(fn, options = {}) {
   const effectFn = () => {
+    console.log('触发')
     cleanUp(effectFn)
     activeEffect = effectFn
 
